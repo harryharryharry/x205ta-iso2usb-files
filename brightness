@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+# backlight brightness controls. use freely
+# and adjust sysfs directory if not on toshiba
+# $author Brice Burgess @iceburg
+#
+# modified for X205TA by harryharryharry
+
+sysfs="/sys/class/backlight/intel_backlight"
+max=`cat ${sysfs}/max_brightness`
+level=`cat ${sysfs}/brightness`
+stepsize=200
+
+usage()
+{
+script=${0##*/}
+echo
+echo "Invalid usage of ${script}!"
+echo "  $1"
+echo "----------------"
+echo "$script up     : increases brightness"
+echo "$script down   : decreases brightness"
+echo "$script set #  : sets brightness to # (integer)"
+echo "$script get    : shows current brightness"
+echo "----------------"
+echo
+
+
+exit 1
+}
+
+set_brightness()
+{
+
+level=$1
+
+if [ $level -lt 1 ] ; then
+	level=1
+elif [ $level -gt $max ] ; then
+	level=$max
+fi
+
+echo $level | sudo tee $sysfs/brightness
+}
+
+get_brightness()
+{
+max_brightness=$(cat $sysfs/max_brightness)
+current_brightness=$(cat $sysfs/brightness)
+percentage_brightness=$(expr $current_brightness \* 100 / $max_brightness)
+#notify-send "🔆 $percentage_brightness" #not yet figured out how notify-send can replace previous notifications
+}
+
+case "$1" in
+up)
+	let "level+="${stepsize}""
+	set_brightness $level
+	get_brightness
+	;;
+down)
+	let "level-="${stepsize}""
+	set_brightness $level
+	get_brightness
+	;;
+	set)
+	if [[ ! $2 =~ ^[[:digit:]]+$ ]]; then
+		usage "second argument must be an integer"
+	fi
+
+	set_brightness $2
+	get_brightness
+	;;
+get)
+	get_brightness
+	;;
+*)
+	usage "invalid argument"
+esac
+
+
+
